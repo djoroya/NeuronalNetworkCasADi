@@ -54,5 +54,5 @@ end
 
 Implementacion de Red Neuronal en CasaDi
 
-
+![bla bla](https://i.ibb.co/xHy02j4/ejemplo.jpg)
 
