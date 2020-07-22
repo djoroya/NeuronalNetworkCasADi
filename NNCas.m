@@ -1,16 +1,14 @@
 import casadi.*
-
+%% Definimos los inputas y ouptpus
 dimInput = 3;
 dimOutput = 1;
-
 %% Data
 XData = linspace(-2,2,10);
 YData = (XData > -1) .*( XData<1);
-%% Variables Simbolicas
-
+%% Arquitectura de la red sera cuadrada
 Nhiddenlayers = 3;
 Nneurons = 4;
-%
+%% Cramos Variables simbolicas para los pesos y bias
 weights = {};
 bias = {};
 
@@ -28,7 +26,7 @@ end
 weights{ilayer+2} =  casadi.SX.sym('wO',[dimOutput Nneurons]);
 bias{ilayer+2}    =  casadi.SX.sym('bO',[dimOutput 1]); 
 
-%% 
+%% Funcion de activacion
 sigmoi = @(x) 0.5 + 0.5*tanh(2*x); 
 %% Variables simbolicas que representa cualquier dato de entrada y salida
 XDataSym = casadi.SX.sym('XData',[dimInput]);
@@ -53,3 +51,6 @@ end
 vars = [vars; bias{ilayer+2}(:)];
 %% Diferenciacion Automatica
 dJdvar = gradient(J,vars);
+%% Creamos Funciones para Coste y su derivada
+dJfun = casadi.Function('dJ',{vars},{J});
+dJdvarfun = casadi.Function('dJ',{vars},{dJdvar});
