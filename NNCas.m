@@ -53,4 +53,4 @@ vars = [vars; bias{ilayer+2}(:)];
 dJdvar = gradient(J,vars);
 %% Creamos Funciones para Coste y su derivada
 dJfun = casadi.Function('dJ',{vars},{J});
-dJdvarfun = casadi.Function('dJ',{vars},{dJdvar});
+dJdvarfun = casadi.Function('J',{vars},{dJdvar});
