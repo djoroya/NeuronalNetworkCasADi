@@ -1,61 +1,60 @@
+clear all
 import casadi.*
-%% Definimos los inputas y ouptpus
-dimInput = 3;
-dimOutput = 2;
-%% Data
-XData = linspace(-2,2,10);
-YData = (XData > -1) .*( XData<1);
-%% Arquitectura de la red sera cuadrada
-Nhiddenlayers = 3;
-Nneurons = 4;
-%% Cramos Variables simbolicas para los pesos y bias
-weights = {};
-bias = {};
 
-% Los pesos y bias  input
-weights{1} =  casadi.SX.sym('wI',[Nneurons dimInput]);
-bias{1}    =  casadi.SX.sym('bI',[dimInput 1]); 
-% Los pesos y bias intermendios
-for ilayer = 1:Nhiddenlayers
-       string = ['w',num2str(ilayer)];
-       weights{ilayer+1} = casadi.SX.sym(string,[Nneurons Nneurons]); 
-       string = ['b',num2str(ilayer)];
-       bias{ilayer+1}    = casadi.SX.sym(string,[Nneurons 1]); 
-end
-% Los pesos y bias  outputs
-weights{ilayer+2} =  casadi.SX.sym('wO',[dimOutput Nneurons]);
-bias{ilayer+2}    =  casadi.SX.sym('bO',[dimOutput 1]); 
+%% Take data
+[IData,OData] = ex01();
 
-%% Funcion de activacion
-sigmoi = @(x) 0.5 + 0.5*tanh(2*x); 
-%% Variables simbolicas que representa cualquier dato de entrada y salida
-XDataSym = casadi.SX.sym('XData',[dimInput]);
-YDataSym = casadi.SX.sym('YData',[dimOutput]);
-%% Termino de Perdidas =>  J = $(y_\omega(XData) - YData)^2$, 
-% donde \omega son los parametros de la red (todos pesos y bias)
-Yomega = sigmoi(weights{1}*XDataSym);
-for ilayer = 1:Nhiddenlayers
-   Yomega = sigmoi(weights{ilayer+1}*Yomega);
-end
-% Tenemos $y_\omega(XData)$
-Yomega = sigmoi(weights{ilayer+2}*Yomega);
-% entonces el termino de perdida es: 
-J = (Yomega-YDataSym)'*(Yomega-YDataSym);
 
-%% Colocamos todas las variables de optimizacion en un solo array
-omegas = weights{1}(:);
-for ilayer = 1:Nhiddenlayers
-    omegas = [omegas ; weights{ilayer+1}(:)];
+%% Definimos los inputs y ouptpus
+[dimInput,~] = size(IData);
+[dimOutput,~] = size(OData);
+%% 
+
+%%
+Nhiddenlayers = 2;
+Nneurons = 5;
+
+iNN = NN(dimInput,dimOutput,Nhiddenlayers,Nneurons);
+%%
+omega = SGDMomentum(iNN,IData,OData);
+%omega = SGDMiniBatch(iNN,IData,OData);
+%omega = GD(iNN,IData,OData);
+
+%%
+
+
+N = 40;
+xline = linspace(-5,5,N);
+yline = linspace(-5,5,N);
+
+allXY = zeros(2,N^2);
+
+i = 0;
+for ix = xline
+   for iy = yline
+      i = i + 1;
+      allXY(:,i) = [ix,iy];
+   end
 end
-omegas = [omegas; weights{ilayer+2}(:)];
-%
-omegas = [omegas; bias{1}(:)];
-for ilayer = 1:Nhiddenlayers
-    omegas = [omegas ; bias{ilayer+1}(:)];
-end
-omegas = [omegas; bias{ilayer+2}(:)];
-%% Diferenciacion Automatica
-dJdw = gradient(J,omegas);
-%% Creamos Funciones para Coste y su derivada
-J_fun     = casadi.Function('J',{omegas,XDataSym,YDataSym},{J});
-dJdw_fun = casadi.Function('dJ',{omegas,XDataSym,YDataSym},{dJdvar});
+%%
+figure(1)
+clf
+hold on
+
+[xms,yms] = meshgrid(xline, yline);
+Z = griddata(allXY(1,:),allXY(2,:),full(iNN.Yomega(omega,allXY)),xms,yms);
+surf(xms, yms, Z,'FaceAlpha',0.6);
+shading interp
+colorbar
+caxis([0 1])
+grid on
+daspect([1 1 1])
+colormap cool
+nSample = find(OData);
+nSample = nSample(1) - 1;
+
+scatter3(IData(1,1:nSample),IData(2,1:1:nSample),OData(1:nSample),'filled')
+scatter3(IData(1,(nSample+1):end),IData(2,(nSample+1):end),OData((nSample+1):end),'filled')
+
+view(0,90)
+
